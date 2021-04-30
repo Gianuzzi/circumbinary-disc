@@ -14,7 +14,7 @@ from numpy.linalg import norm
 from functools import partial
 
 from libs.funcs import trapezoidal, simpson, boole, surf_prof
-from libs.const import G
+from libs.const import G, KB, mP
 
 class Disk:
     """ Class for creating a distribution of particles in a close-packed
@@ -27,7 +27,7 @@ class Disk:
             rmax : disk's inner radius (with units)
             mass : disk's mass   (with units)
     """
-    def __init__(self, n=10000, cm=[0.,0.], rmin=1e-10, rmax=1., mass=1., h=0.05):
+    def __init__(self, n=10000, cm=[0,0], rmin=1e-10, rmax=1, mass=1, h=0.05):
             
         print("Creating gaseous disk...")
         
@@ -346,7 +346,7 @@ class Disk:
                 for i in range(nbins - 1): M_b.append(simpson(integ, bins[i], bins[i+1]))
 
                 # normalize, according to Sigma and alpha factor unit
-                M_b       = array(M_b) * 2. * pi * sigma * AU**alpha
+                M_b       = array(M_b) * 2 * pi * sigma * AU**alpha
 
                 # particles bin's index
                 Pb_ind    = digitize(radii, bins) - 1
@@ -422,7 +422,7 @@ class Disk:
                 for i in range(nbins - 1): M_b.append(simpson(integ, bins[i], bins[i+1]))
                 
                 # normalize, according to Sigma(Rgap)
-                M_b       = array(M_b) * 2. * pi * sigma * AU**alpha
+                M_b       = array(M_b) * 2 * pi * sigma * AU**alpha
                 
                 # particles mass aproximation
                 pmass  = sum(M_b) / self.npart
@@ -467,7 +467,7 @@ class Disk:
                 
                 
                 
-    def add_velocity(self, Mextra=0., period=False, model=1):
+    def add_velocity(self, Mextra=0, period=False, model=1):
         """ Function for setting the velocities of a disk of particles,
             rotating contraclockwise. Pure circular motion assumed.
 
@@ -519,8 +519,9 @@ class Disk:
                 
     
     
-    def add_energy(self, T=0., beta=0., Mkep=0., mu=2.001, gamma=1.0001, AU=1.):
-        """ Function for setting the temperature of a disk of particles.
+    def add_energy(self, T=0, beta=0, Mkep=0, mu=1, gamma=5/3., Tmin=5., AU=1):
+        """ Function for setting the temperature of a disk of particles. This
+             function is still being tested and corrected.
             # InternalEnergy = Temperature * kBoltz / (mu * mP * (gamma - 1))
 
             Arguments:
@@ -531,31 +532,60 @@ class Disk:
                 beta  : power index of a radial temperature distribution.
                 Mkep  : central mass used for calculating the local speed
                          of sound.
-                mu    : mu used.
-                gamma : adiabatic index used.
+                mu    : mu used (mean molecular weight / mP). If set equal
+                         to 0, it is calculated dependig the temperature.
+                gamma : adiabatic index used. If set equal
+                         to 0, it is calculated dependig the temperature.
+                Tmin  : Minimum temperature (with temperature units).
                 AU    : astronomical unit in input distance units.
         """
-                
-        print("Adding temperature, assuming mu = {:.2f} and gamma_index = {:.2f}...".format(mu, gamma))
         
+        print('Adding temperature...')
+
+        radii  = norm(self.pos - self.center, axis=1)
+       
         if T == 0:
             print("WARNING. Minimun temperature is zero.")
             print("         Remember to re-set it when integrating.")
-        
-        factor = mu * (gamma - 1.)       
-        radii  = norm(self.pos - self.center, axis=1)
-        
-        if T >= 0: u = full(self.npart, T * (radii / AU)**beta / factor)
-        
-        else:
-            print(' Setting Temperature according to c_s(r)**2, with c_s(r) = h * v_kep(r)...')
-            try:
-                v_kep = self.v_kep
-            except:
-                v_kep = sqrt(Mkep * G / radii)
-            c_s = self.h * v_kep
-            u   = c_s**2 / factor
+   
+        if T < 0:
+            print(' Setting Temperature according to c_s(r)**2, with c_s(r) = h * v_kep(r),')
+            try:    v_kep = self.v_kep
+            except: v_kep = sqrt(Mkep * G / radii)
+            c_s   = self.h * v_kep
+            if gamma <= 0: gamma_cs = 1
+            else: gamma_cs = gamma
+            if mu <= 0:
+                if gamma == 1.4: mu_cs = 2.01  # Adiabatic molecular
+                else: mu_cs = 1.005            # Adiabatic/Isothermal atomic
+
+            print('  using gamma = {:.3f}, and mu = {:.3f}.'.format(gamma_cs, mu_cs))  
             
+            T = c_s**2 * mu_cs * mP / (gamma_cs * KB)
+
+        else:
+            T = full(self.npart, T * (radii / AU)**beta)
+
+
+        T[T < Tmin] = Tmin  
         
-        self.u = u
+        # This following settings are still being tested if correct
+    
+        if mu <= 0:
+            print(' Calculating mu used in code.')
+            mu = full(self.npart, 0.5) # Ionized
+            mu[T < 1.e4] = 1.005       # Atomic
+            mu[T < 2.e3] = 2.01        # Molecular (Optional)
+
+        if gamma <= 0:
+            print(' Calculating gamma used in code.')
+            gamma = full(self.npart, 5/3.) # Adiabatic monoatomic
+            gamma[T < 2.e3] = 1.4	   # Adiabatic diatomic
+
+        factor = KB / (mP * mu * (gamma - 1))
+        
+        print(' Maximum temperature: {:.2f}'.format(max(T)))
+        print(' Minimum temperature: {:.2f}'.format(min(T)))
+         
+        self.u = T * factor
 

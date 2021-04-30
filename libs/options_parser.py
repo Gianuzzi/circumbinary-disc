@@ -78,16 +78,16 @@ class OptionsParser:
                                  type     = float,
                                  help     = "Mass of the second binary\n"+\
                                             "component (in solar masses).\n"+\
-                                            " [Default = 1]",
-                                 default  = 1.)
+                                            " [Default = 0]",
+                                 default  = 0.)
 
         self.parser.add_argument("-abin", "-a",
                                  dest     = "a",
                                  type     = float,
                                  help     = "Semi-major axis of the binary\n"+\
                                             "system (in astronomical units).\n"+\
-                                            " [Default = 1]",
-                                 default  = 1.)
+                                            " [Default = 0]",
+                                 default  = 0.)
         
         self.parser.add_argument("-ebin", "-e",
                                  dest     = "e",

@@ -3,7 +3,7 @@ from __future__ import print_function
 import numpy as np
 from libs.gaseous_disk import Disk
 from libs.stars import StarSystem
-from libs.const import G, msol, AU, KB, mP
+from libs.const import G, msol, AU,  rsol 
 from libs.utils import save_particles
 from libs.options_parser import OptionsParser
 
@@ -21,8 +21,9 @@ if __name__ == "__main__":
     m2   = args.m2 * msol
     abin = args.a * AU
     ebin = args.e
-    
-    star = StarSystem(m1=m1, m2=m2, a=abin, e=ebin, cm=r_cm, apo=True)
+    rad  = 0 * rsol
+   
+    star = StarSystem(m1=m1, m2=m2, a=abin, e=ebin, cm=r_cm, rad=rad, apo=True)
     
     Nbin = star.Nbin
     Mbin = star.Mbin
@@ -57,21 +58,27 @@ if __name__ == "__main__":
     disk.add_velocity(Mextra=Mbin, period=Tbin, model=model)
     
     ## energy
-    T    = args.T * KB / mP
+    T    = args.T 
+    Tmin = 5. # 0.
     beta = args.beta
-    disk.add_energy(T=T, beta=beta, Mkep=Mbin, mu=2.001, gamma=1.0001, AU=AU)
+    disk.add_energy(T=T, beta=beta, Mkep=Mbin, mu=0, gamma=1.0001, Tmin=Tmin, AU=AU)
 
     pos   = disk.pos
     vel   = disk.vel
     ngas  = disk.npart
     mass  = disk.mass
-    u     = disk.u
-    
+    u     = disk.u 
+
+    dist  = np.diff(np.sort(np.linalg.norm(pos, axis=1)))
+    print('Minimum gas separation: {:.2e} [AU]'.format(np.min(dist) / AU))
+    print('Mean gas separation   : {:.2e} [AU]'.format(np.mean(dist) / AU))
+      
     ids   = np.arange(1, ngas + 1)
     types = np.zeros(ngas).astype(int)
     
-    print('Total disk mass: {:.2e} [Msol]'.format(sum(disk.mass)/msol))
+    print('Total disk mass: {:.2e} [Msol]'.format(sum(disk.mass) / msol))
 
+    rad = np.array([0])
     if Nbin != 0:
         pos   = np.append(pos, star.pos, axis=0)
         vel   = np.append(vel, star.vel, axis=0)
@@ -79,13 +86,15 @@ if __name__ == "__main__":
         ids   = np.append(ids, np.arange(Nbin) + ngas + 1)
         u     = np.append(u, np.zeros(Nbin))
         types = np.append(types, np.ones(Nbin) * 5).astype(int)
-        print('Total star mass: {:.3f} [Msol]'.format(Mbin/msol))
+        rad   = star.Rbin
+        print('Total star mass: {:.3f} [Msol]'.format(Mbin / msol))
+
     
     # Create z direction
     pos = np.append(pos, np.zeros(len(pos))[:,np.newaxis], axis=1)
     vel = np.append(vel, np.zeros(len(vel))[:,np.newaxis], axis=1)
 
     print("Writing output file {}...".format(args.outfile))
-    save_particles(ids, pos, vel, mass, u, types, args.outfile, args.format, args.units)
+    save_particles(ids, pos, vel, mass, u, types, rad, args.outfile, args.format, args.units)
 
     print("done...bye!")

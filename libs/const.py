@@ -49,6 +49,13 @@ parsec = 3.08568025e18  # [ cm ]
 # AU
 AU = 1.49597871e13      # [ cm ]
 
+# Hydrogen dissociation temperature
+Dis_T = 10400           # [ K ]
+##Dis_D = 2.30181e16 * mP # [ g cm^-3 ]
+
+# Hydrogen ionization temperature
+Ion_T = 13.6 * ev2erg / KB
+
 # conversion factor for cosmological magnetic field
 bfac = sqrt(1e10 * msol) / sqrt(1e6 * parsec) * 1e5 / (1e6 * parsec)
 
