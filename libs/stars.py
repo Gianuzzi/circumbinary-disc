@@ -17,19 +17,19 @@ class StarSystem:
             apo : bool indicating if the binary is at apoastron (True)
                   or at periastron (False)
     """
-    def __init__(self, m1=1., m2=1., a=1., e=0., cm=[0.,0.], rad=0., apo=True):
+    def __init__(self, m1=1, m2=1, a=1, e=0, cm=[0,0], rad=0, apo=True):
         
         M = float(m1 + m2)
-        T = 2. * pi * sqrt(a**3 / (G * M))
+        T = 2 * pi * sqrt(a**3 / (G * M))
         
         if M == 0:
             print('Binary system not generated.')
             N = pos = vel = mass = rad = 0
-             
+
         elif (a == 0) | (m1 == 0) | (m2 == 0):
             print('Creating just one sink particle...')
             pos  = array(cm)[newaxis,:]
-            vel  = array([0., 0.])[newaxis,:]
+            vel  = array([0, 0])[newaxis,:]
             mass = M
             N    = 1
             rad  = array([rad])
@@ -38,18 +38,18 @@ class StarSystem:
             print('Creating binary system...')
             # auxiliar values
             if apo:
-                eu = 1. + e
-                ed = 1. - e
+                eu = 1 + e
+                ed = 1 - e
             else:
-                eu = 1. - e
-                ed = 1. + e
+                eu = 1 - e
+                ed = 1 + e
             
             aux_m = max(m1, m2)
             m2    = min(m1, m2)
             m1    = aux_m
             
             aux_p = a * eu / M
-            aux_v = 2. * pi / T * a / M * sqrt(ed / eu)
+            aux_v = 2 * pi / T * a / M * sqrt(ed / eu)
             
             pos   = array([[m2 * aux_p, 0], 
                            [-m1 * aux_p, 0]]) + array(cm)
@@ -62,14 +62,14 @@ class StarSystem:
             
             if isinstance(rad, (int, float)): rad = array([rad, rad])
             elif isinstance(rad, (ndarray, list)) and (len(rad) != 2):
-                raise ValueError('Sinks radii array must be 2D')
-            else: rad = array([0,0])
+                raise ValueError('Sinks radii array must be 2D.')
+            else: rad = array([0, 0])
             if not all(rad):
                 #Extra: Calculating m1 L1 sphere and m2 Hill sphere
                 mu = m2 / M
                 print(' mu = {:.3f}'.format(mu))
                 if mu < 0.5:
-                    delta  = (mu / (3. * (1 - mu)))**(1 / 3.)
+                    delta  = (mu / (3 * (1 - mu)))**(1 / 3.)
                     Rhill1 = (1 - delta + delta**2 / 3. - delta**3 / 9. -\
                                23 * delta**4 / 81.) * a
                     Rhill2 = a * (m2 / (3. * m1))**(1 / 3.)

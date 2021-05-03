@@ -5,56 +5,55 @@ from numpy import sqrt
 # all constants in cgs
 
 # gravitational constant
-G = 6.674e-8            # [ cm^3 g^-1 s^-1 ]
+G = 6.674e-8                # [ cm^3 g^-1 s^-1 ]
 
 # avogadro constant
-NA = 6.0221418e23       # [ ]
+NA = 6.0221418e23           # [ ]
 
 # boltzmann constant
-KB = 1.3806504e-16      # [ erg K^-1 ]
+KB = 1.3806504e-16          # [ erg K^-1 ]
 
 # planck constant
-H = 6.62606896e-27      # [ erg s ]
+H = 6.62606896e-27          # [ erg s ]
 
 # speed of light in vacuum
-c = 2.99792458e10       # [ cm s^-1 ]
+c = 2.99792458e10           # [ cm s^-1 ]
 
 # solar mass
-msol = 1.989e33         # [ g ]
+msol = 1.989e33             # [ g ]
 
 # solar radius
-rsol = 6.955e10         # [ cm ]
+rsol = 6.955e10             # [ cm ]
 
 # solar luminosity
-lsol = 3.839e33         # [ erg s^-1 ]
+lsol = 3.839e33             # [ erg s^-1 ]
 
 # electron charge
-qe = 4.80320427e-10     # [ esu ]
+qe = 4.80320427e-10         # [ esu ]
 
 # hydrogen mass
-mH = 1.6735575e-24      # [ g ]
+mH = 1.6735575e-24          # [ g ]
 
 # proton mass
-mP = 1.6726219e-24      # [ g ]
+mP = 1.6726219e-24          # [ g ]
 
 # atomic mass unit
-amu = 1.6605390401e-24  # [ g ]
+amu = 1.6605390401e-24      # [ g ]
 
 # ev2erg
-ev2erg = 1.602177e-12   # [ erg eV^-1 ]
+ev2erg = 1.602177e-12       # [ erg eV^-1 ]
 
 # parsec
-parsec = 3.08568025e18  # [ cm ]
+parsec = 3.08568025e18      # [ cm ]
 
 # AU
-AU = 1.49597871e13      # [ cm ]
+AU = 1.49597871e13          # [ cm ]
 
 # Hydrogen dissociation temperature
-Dis_T = 10400           # [ K ]
-##Dis_D = 2.30181e16 * mP # [ g cm^-3 ]
+Dis_T = 2.e4                # [ K ]
 
 # Hydrogen ionization temperature
-Ion_T = 13.6 * ev2erg / KB
+Ion_T = 13.6 * ev2erg / KB  # [ K ]
 
 # conversion factor for cosmological magnetic field
 bfac = sqrt(1e10 * msol) / sqrt(1e6 * parsec) * 1e5 / (1e6 * parsec)

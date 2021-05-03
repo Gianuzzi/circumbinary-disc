@@ -20,6 +20,7 @@ def save_particles(ids, pos, vel, mass, u, types, rad, outfile, format, units):
         mass /= msol
         vel  /= 1.e5
         u    /= 1.e10
+        rad  /= AU
     else:
         print("[Output Units CGS]")
 

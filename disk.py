@@ -3,7 +3,7 @@ from __future__ import print_function
 import numpy as np
 from libs.gaseous_disk import Disk
 from libs.stars import StarSystem
-from libs.const import G, msol, AU,  rsol 
+from libs.const import G, msol, AU, rsol 
 from libs.utils import save_particles
 from libs.options_parser import OptionsParser
 
