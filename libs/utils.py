@@ -10,8 +10,8 @@ from libs.const import msol, AU
 
 def save_particles(ids, pos, vel, mass, u, types, rad, outfile, format, units):
 
-    nbin = sum(types == 5)
-    ngas = len(mass) - nbin
+    nsys = sum(types == 5)
+    ngas = len(mass) - nsys
         
     # conversion for different Units
     if units:
@@ -48,7 +48,7 @@ def save_particles(ids, pos, vel, mass, u, types, rad, outfile, format, units):
         id_space = len("{}".format(ngas))
 
         # Preparing every line to print to the file
-        for i in range(ngas+nbin):
+        for i in range(ngas+nsys):
             # Formatting particle attributes
             ie = '% d'    % ids[i]
             rx = '% 3.8e' % pos[i][0]
@@ -84,10 +84,10 @@ def save_particles(ids, pos, vel, mass, u, types, rad, outfile, format, units):
             f.create_group("Header")
             if len(unique(mass[:ngas])) > 1: mgas = 0.
             else: mgas = mass[0]
-            if bool(nbin) & (len(unique(mass[ngas:])) == 1): mbh = mass[-1]
+            if bool(nsys) & (len(unique(mass[ngas:])) == 1): mbh = mass[-1]
             else: mbh = 0.
-            f["Header"].attrs["NumPart_ThisFile"]     = array([ngas,0,0,0,0,nbin], dtype=uint32)
-            f["Header"].attrs["NumPart_Total"]        = array([ngas,0,0,0,0,nbin], dtype=uint32)
+            f["Header"].attrs["NumPart_ThisFile"]     = array([ngas,0,0,0,0,nsys], dtype=uint32)
+            f["Header"].attrs["NumPart_Total"]        = array([ngas,0,0,0,0,nsys], dtype=uint32)
             f["Header"].attrs["MassTable"]            = array([mgas,0,0,0,0,mbh], dtype=float32)
             f["Header"].attrs["Time"]                 = 0.0
             f["Header"].attrs["Redshift"]             = 0.0
@@ -100,15 +100,13 @@ def save_particles(ids, pos, vel, mass, u, types, rad, outfile, format, units):
             f["PartType0"].create_dataset("Velocities",     data=vel[:ngas].astype(float32))
             f["PartType0"].create_dataset("ParticleIDs",    data=ids[:ngas].astype(int32))
             f["PartType0"].create_dataset("InternalEnergy", data=u[:ngas].astype(float32))
-            if bool(nbin):
+            if bool(nsys):
                 f.create_group("PartType5")
                 f["PartType5"].create_dataset("Masses",      data=mass[ngas:].astype(float32))
                 f["PartType5"].create_dataset("Coordinates", data=pos[ngas:].astype(float32))
                 f["PartType5"].create_dataset("Velocities",  data=vel[ngas:].astype(float32))
                 f["PartType5"].create_dataset("ParticleIDs", data=ids[ngas:].astype(int32))
-                if all(rad): 
-                  if nbin == 1: f["PartType5"].create_dataset("SinkRadius", data=float32(rad))
-                  else: f["PartType5"].create_dataset("SinkRadius", data=rad.astype(float32))
+                if all(rad): f["PartType5"].create_dataset("SinkRadius", data=array(rad, dtype=float32))
 
     else:
         print("Format {} unknown or not implemented. Exiting.".format(format))

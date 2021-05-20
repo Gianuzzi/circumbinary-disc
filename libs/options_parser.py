@@ -61,7 +61,7 @@ class OptionsParser:
         self.parser.add_argument("-H", "-hz",
                                  dest     = "h",
                                  type     = float,
-                                 help     = "Razón de aspecto de disco.\n"+\
+                                 help     = "Disk aspect ratio.\n"+\
                                             " [Default = 0.05]",
                                  default  = 0.05)
         
@@ -163,6 +163,52 @@ class OptionsParser:
                                             "distribution profile.\n"+\
                                             " [Default = 0 (Uniform)]",
                                  default  = 0)
+        
+        self.parser.add_argument("-mp",
+                                 dest     = "mp",
+                                 type     = float,
+                                 help     = "Mass of the planet (in solar masses).\n"+\
+                                            " [Default = 0]",
+                                 default  = 0.)
+
+        self.parser.add_argument("-ap",
+                                 dest     = "ap",
+                                 type     = float,
+                                 help     = "Semi-major axis of the planet's orbits\n"+\
+                                            "(in astronomical units).\n"+\
+                                            " [Default = 0]",
+                                 default  = 0.)
+        
+        self.parser.add_argument("-ep",
+                                 dest     = "ep",
+                                 type     = float,
+                                 help     = "Eccentricity of the planet's orbits.\n"+\
+                                            " [Default = 0]",
+                                 default  = 0.)
+    
+        self.parser.add_argument("-fp", "-f",
+                                 dest     = "fp",
+                                 type     = float,
+                                 help     = "True anomaly of the planet's orbits\n"+\
+                                            "(in degrees), considering varpi = 0\n"+\
+                                            "(argument of the perihelio = 0).\n"+\
+                                            " [Default = 0]",
+                                 default  = 0.)
+        
+        self.parser.add_argument("-cs", "-cp",
+                                 dest     = "cs",
+                                 type     = float,
+                                 help     = "Planetary orbits's focus:\n"+\
+                                            "0 = star system's center of\n"+\
+                                            "    mass (~jacobi).\n"+\
+                                            "1 = most massive (or only)\n"+\
+                                            "    star of the system.\n"+\
+                                            "    if equal stars's mass,\n"+\
+                                            "    the right one is opted.\n"+\
+                                            "2 = least massive star of\n"+\
+                                            "    the system.\n"+\
+                                            " [Default = 0]",
+                                 default  = 0.)
         
         self.parser.add_argument("--units",
                             dest     = "units",

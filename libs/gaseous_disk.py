@@ -1,4 +1,5 @@
 from __future__ import print_function
+from sys import exit
 
 from numpy import sum, max, min, all
 from numpy import log, log10, exp, sqrt
@@ -21,18 +22,17 @@ class Disk:
         sphere.
 
         Arguments:
-            n    : total number of desired points to represent the disk
-            cm   : coordinates of the disk's center (with units)
-            rmin : disk's outer radius (with units)
-            rmax : disk's inner radius (with units)
-            mass : disk's mass   (with units)
+            n    : total number of desired points to represent the disk.
+            cm   : coordinates of the disk's center (with units).
+            rmin : disk's outer radius (with units).
+            rmax : disk's inner radius (with units).
+            mass : disk's mass   (with units).
     """
     def __init__(self, n=10000, cm=[0,0], rmin=1e-10, rmax=1, mass=1, h=0.05):
             
         print("Creating gaseous disk...")
         
         if mass == 0: # we don't create the disk now
-            
             
             self.npart  = n
             self.center = array(cm)
@@ -42,7 +42,6 @@ class Disk:
             self.h      = h
             
         else:
-        
             # first we create a square with uniform distribution, hence we need to sample
             # more particles than the desired N
             side    = 2 * rmax
@@ -116,7 +115,6 @@ class Disk:
                 exit()
 
             print("Setting radial density profile with  RHO~r**{}...".format(kappa))
-
 
             if method == 1:
                 print(" Modifying particles positions...")
@@ -293,7 +291,6 @@ class Disk:
                 print("Method must be 1, 2 or 3. {} was given. Exiting.".format(method))
                 exit()
                 
-        
         
         # now the "publication" profile
         elif Rgap!=0:

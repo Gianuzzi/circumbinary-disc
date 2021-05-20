@@ -1,4 +1,5 @@
 from __future__ import print_function
+from sys import exit
 
 import numpy as np
 from libs.gaseous_disk import Disk
@@ -6,6 +7,8 @@ from libs.stars import StarSystem
 from libs.const import G, msol, AU, rsol 
 from libs.utils import save_particles
 from libs.options_parser import OptionsParser
+
+
 
 
 if __name__ == "__main__":
@@ -16,18 +19,28 @@ if __name__ == "__main__":
     # where we want to place the center of mass
     r_cm = np.array([0.,0.])
     
-    # first we create the binary system 
+    # first we create the star system and the planets
     m1   = args.m1 * msol
     m2   = args.m2 * msol
     abin = args.a * AU
     ebin = args.e
     rad  = 0 * rsol
+    
+    mp   = args.mp * msol
+    ap   = args.ap * AU
+    ep   = args.ep
+    fp   = args.fp
+    cs   = args.cs
+    radp = 0 * rsol
    
     star = StarSystem(m1=m1, m2=m2, a=abin, e=ebin, cm=r_cm, rad=rad, apo=True)
+    star.add_planets(m=mp, a=ap, e=ep, f=fp, cs=cs, rad=radp)
     
     Nbin = star.Nbin
     Mbin = star.Mbin
     Tbin = star.Tbin
+    
+    Npla = star.Npla
         
     # now we create the disk    
     mdisk = args.mass * msol
@@ -51,7 +64,7 @@ if __name__ == "__main__":
     DR    = args.DR * Rgap
     disk.add_profile(kappa=kappa,
                      sigma=sigma, alpha=alpha, Rgap=Rgap, DR=DR,
-                     method=3, nbins=250, logb=True, AU=AU)
+                     method=3, nbins=800, logb=True, AU=AU)
     
     ## velocity
     model = args.Mrot
@@ -68,26 +81,31 @@ if __name__ == "__main__":
     ngas  = disk.npart
     mass  = disk.mass
     u     = disk.u 
-
-    dist  = np.diff(np.sort(np.linalg.norm(pos, axis=1)))
-    print('Minimum gas separation: {:.2e} [AU]'.format(np.min(dist) / AU))
-    print('Mean gas separation   : {:.2e} [AU]'.format(np.mean(dist) / AU))
-      
-    ids   = np.arange(1, ngas + 1)
     types = np.zeros(ngas).astype(int)
+    ids   = np.arange(Nbin + Npla + ngas) + 1
     
-    print('Total disk mass: {:.2e} [Msol]'.format(sum(disk.mass) / msol))
+    
+    u     = np.append(u, np.zeros(Nbin + Npla))
+    types = np.append(types, np.ones(Nbin + Npla) * 5).astype(int)
+    
+    #dist  = np.diff(np.sort(np.linalg.norm(pos, axis=1)))
+    #print('Minimum gas separation: {:.2e} [AU]'.format(np.min(dist) / AU))
+    #print('Mean gas separation   : {:.2e} [AU]'.format(np.mean(dist) / AU))
+    #print('Total disk mass       : {:.2e} [Msol]'.format(sum(disk.mass) / msol))
 
-    rad = np.array([0])
-    if Nbin != 0:
+    rad = np.array([])
+    if Nbin > 0:
         pos   = np.append(pos, star.pos, axis=0)
         vel   = np.append(vel, star.vel, axis=0)
         mass  = np.append(mass, star.mass)
-        ids   = np.append(ids, np.arange(Nbin) + ngas + 1)
-        u     = np.append(u, np.zeros(Nbin))
-        types = np.append(types, np.ones(Nbin) * 5).astype(int)
         rad   = star.Rbin
         print('Total star mass: {:.3f} [Msol]'.format(Mbin / msol))
+    if Npla > 0:
+        pos   = np.append(pos, star.posP, axis=0)
+        vel   = np.append(vel, star.velP, axis=0)
+        mass  = np.append(mass, star.massP)
+        rad   = np.append(rad, star.Rpla)
+        print('Total planetary mass: {:.3f} [Msol]'.format(sum(star.massP) / msol))
 
     
     # Create z direction
