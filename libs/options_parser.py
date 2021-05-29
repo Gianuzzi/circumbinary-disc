@@ -4,19 +4,22 @@ class OptionsParser:
     def __init__(self):
         self.parser = ArgumentParser(description=
                 "Generate a disk of particles, with angular velocities, with a\n"+\
-                "binary system in it's center. The disk can also have a central gap\n"
-                "A radial surface density profile can be setted, following a radial\n"
-                "power law, or adjusted to the model shown in equation (12) of\n"+\
-                "Thun et al. (2017) [DOI:10.1051/0004-6361/201730666]. If the last\n"+\
-                "one is desired, Rgap must be non zero.\n"+\
-                "If m1 or m2 equals 0, no binary system is created.",
+                " binary system in it's center.\n"+\
+                "The disk can also have a central gap, and a radial surface\n"+\
+                " density profile can be setted, following a radial power law,\n"+\
+                " or adjusted to the model shown in equation (12) of\n"+\
+                " Thun et al. (2017) [DOI:10.1051/0004-6361/201730666].\n"+\
+                "Instead of a binary, a single or none star system can be\n"+\
+                " generated. It's also possible to set a planet orbiting one\n"+\
+                " or both stars.",
                 formatter_class=RawTextHelpFormatter)
 
         self.parser.add_argument("-N", "-n",
                                  dest     = "num",
                                  type     = int,
-                                 help     = "Number of particles (required).",
-                                 required = True)
+                                 help     = "Number of particles.\n"+\
+                                            " [Default = 100]",
+                                 default = 100)
 
         self.parser.add_argument("-o",
                                  metavar = "outfile",
@@ -39,24 +42,24 @@ class OptionsParser:
                                  type     = float,
                                  help     = "Inner radius of the disk\n"+\
                                             "(in astronomical units).\n"+\
-                                            " [Default = 0]",
-                                 default  = 0.)
+                                            " [Default = 0.25]",
+                                 default  = 0.25)
         
         self.parser.add_argument("-rmax",
                                  dest     = "rmax",
                                  type     = float,
                                  help     = "Outer radius of the disk\n"+\
                                             "(in astronomical units).\n"+\
-                                            " [Default = 1]",
-                                 default  = 1.)
+                                            " [Default = 15.4]",
+                                 default  = 15.4)
         
         self.parser.add_argument("-m",
                                  dest     = "mass",
                                  type     = float,
                                  help     = "Total mass of the gaseous disk\n"+\
                                             "(in solar masses).\n"+\
-                                            " [Default = 1]",
-                                 default  = 1.)
+                                            " [Default = 0]",
+                                 default  = 0.)
         
         self.parser.add_argument("-H", "-hz",
                                  dest     = "h",
@@ -70,31 +73,31 @@ class OptionsParser:
                                  type     = float,
                                  help     = "Mass of the first binary\n"+\
                                             "component (in solar masses).\n"+\
-                                            " [Default = 1]",
-                                 default  = 1.)
+                                            " [Default = 0.69]",
+                                 default  = 0.69)
 
         self.parser.add_argument("-m2",
                                  dest     = "m2",
                                  type     = float,
                                  help     = "Mass of the second binary\n"+\
                                             "component (in solar masses).\n"+\
-                                            " [Default = 0]",
-                                 default  = 0.)
+                                            " [Default = 0.2]",
+                                 default  = 0.2)
 
-        self.parser.add_argument("-abin", "-a",
+        self.parser.add_argument("-abin", "-a", "-ab",
                                  dest     = "a",
                                  type     = float,
                                  help     = "Semi-major axis of the binary\n"+\
                                             "system (in astronomical units).\n"+\
-                                            " [Default = 0]",
-                                 default  = 0.)
+                                            " [Default = 0.22]",
+                                 default  = 0.22)
         
-        self.parser.add_argument("-ebin", "-e",
+        self.parser.add_argument("-ebin", "-e", "-eb",
                                  dest     = "e",
                                  type     = float,
                                  help     = "Eccentricity of the binary system.\n"+\
-                                            " [Default = 0]",
-                                 default  = 0.)
+                                            " [Default = 0.16]",
+                                 default  = 0.16)
 
         self.parser.add_argument("-k", "-kappa",
                                  dest     = "kappa",
@@ -152,7 +155,7 @@ class OptionsParser:
         self.parser.add_argument("-T", "-Temp",
                                  dest     = "T",
                                  type     = float,
-                                 help     = "Temperature at radius (with units) = 1.\n"+
+                                 help     = "Temperature (with units) at radius = 1.\n"+
                                             " [Default = 0]",
                                  default  = 0.)
         
@@ -197,7 +200,7 @@ class OptionsParser:
         
         self.parser.add_argument("-cs", "-cp",
                                  dest     = "cs",
-                                 type     = float,
+                                 type     = int,
                                  help     = "Planetary orbits's focus:\n"+\
                                             "0 = star system's center of\n"+\
                                             "    mass (~jacobi).\n"+\
@@ -208,13 +211,18 @@ class OptionsParser:
                                             "2 = least massive star of\n"+\
                                             "    the system.\n"+\
                                             " [Default = 0]",
-                                 default  = 0.)
+                                 default  = 0)
         
         self.parser.add_argument("--units",
                             dest     = "units",
                             help     = "Change units to Msol/AU/km s^{-1} ",
                             action   = "store_true")
+            
+        self.parser.add_argument("--thun", "--Thun",
+                            dest     = "thun",
+                            help     = "Configure a surface density following\n"+\
+                                       "Thun et. al (2017).",
+                            action   = "store_true")
 
     def get_args(self):
         return self.parser.parse_args()
-

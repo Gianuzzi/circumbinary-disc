@@ -57,7 +57,10 @@ def boole(f, a, b, n=5):
         x   += h * 4 
     return val
 
-# Publication's profile
+# Publication's profile, without normalization
+def thun_prof(r, alpha=1.5, Rgap=0.55, DR=0.055):
+    return r**(-alpha) / (1 + exp((Rgap - r) / DR))
+
 def surf_prof(r, alpha=1.5, Rgap=0.55, DR=0.055):
-    # r * Function
-    return r * r**(-alpha) / (1 + exp((Rgap - r) / DR))
+    return r * thun_prof(r, alpha, Rgap, DR)
+    

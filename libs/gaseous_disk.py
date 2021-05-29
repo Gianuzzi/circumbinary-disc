@@ -27,56 +27,26 @@ class Disk:
             rmin : disk's outer radius (with units).
             rmax : disk's inner radius (with units).
             mass : disk's mass   (with units).
+            h    : disk's aspect ratio.
     """
-    def __init__(self, n=10000, cm=[0,0], rmin=1e-10, rmax=1, mass=1, h=0.05):
-            
-        print("Creating gaseous disk...")
-        
-        if mass == 0: # we don't create the disk now
-            
-            self.npart  = n
+    def __init__(self, n=10000, cm=[0,0], rmin=0, rmax=1, mass=1, h=0.05):
+
+        if n == 0:
+            print("Gaseous disk not created.")
+            self.npart = 0
+
+        else:
+            print("Creating gaseous disk...")
+            self.npart = n
             self.center = array(cm)
-            self.mass   = full(n, 1 / float(n))
             self.rmin   = rmin
             self.rmax   = rmax
-            self.h      = h
-            
-        else:
-            # first we create a square with uniform distribution, hence we need to sample
-            # more particles than the desired N
-            side    = 2 * rmax
-            ratio   = 4 / pi * rmax**2 / (rmax**2 - rmin**2) # ratio between square and disk area
-            nsquare = ratio * n 
-            nside   = int(sqrt(nsquare * 0.25))
-            naux    = nside**2
-
-            z3      = mgrid[0:nside, 0:nside].T.reshape(naux, 2)
-            grid    = (concatenate((z3,
-                                    z3 + [0.0, 0.5], 
-                                    z3 + [0.5, 0.0], 
-                                    z3 + [0.5, 0.5])) + 0.25)/nside * side
-
-            pos     = grid - rmax
-            r       = norm(pos, axis=1)
-
-            ig      = (r >= rmin) & (r <= rmax)
-            pos     = pos[ig] + array(cm)
-            npart   = len(pos)
-            masses  = full(npart, mass / float(npart)) # uniform masses
-            print("We placed {:d} gas cells in a close-packed disk.".format(npart))
-
-
-            self.npart  = npart
-            self.pos    = pos
-            self.mass   = masses
-            self.center = array(cm)
-            self.rmin   = min(norm(pos, axis=1))
-            self.rmax   = max(norm(pos, axis=1))    
+            self.mdisk  = mass
             self.h      = h
             
         
     
-    def add_profile(self, method=2,
+    def add_profile(self, method=2, thun: bool=True,
                     kappa=0, sigma=1e-4, alpha=1.5, Rgap=0.55, DR=0.055,
                     nbins=250, logb=True, seed=42, AU=1):
         """ Function for setting a radial density profile to a uniform
@@ -92,8 +62,9 @@ class Disk:
                             mass.
                          2: The profile is created by redistributing the
                             particles masses, without modifying their positions.
-                         3: Create new particles potitions and masses, following
+                         3: Create particles potitions and masses, following
                             the desired distribution.
+                thun   : if the density profile model is the one in Thun et al.
                 kappa  : power index of radial density distribution.
                 sigma  : reference surface density (with units).
                 alpha  : value of alpha (initial slope).
@@ -105,28 +76,60 @@ class Disk:
                 seed   : seed for random numbers generator.
         """
         
-        if self.rmin == 0: logb=False
+        if self.npart == 0:
+            self.pos   = transpose(array([[],[]]))
+            self.mass  = array([])
+            return
+
+        unif = ((not thun) & (kappa == 0)) | ((self.mdisk == 0) & (sigma == 0))
+        if (method in [1, 2]) | unif: # we need preset positions
+            # first we create a square with uniform distribution, hence we need to sample
+            # more particles than the desired N
+            side    = 2 * self.rmax
+            ratio   = 4 / pi * self.rmax**2 / (self.rmax**2 - self.rmin**2) # ratio between square and disk area
+            nsquare = ratio * self.npart
+            nside   = int(sqrt(nsquare * 0.25))
+            naux    = nside**2
+            z3      = mgrid[0:nside, 0:nside].T.reshape(naux, 2)
+            grid    = (concatenate((z3,
+                                    z3 + [0.0, 0.5], 
+                                    z3 + [0.5, 0.0], 
+                                    z3 + [0.5, 0.5])) + 0.25)/nside * side
+            pos     = grid - self.rmax
+            r       = norm(pos, axis=1)
+            ig      = (r >= self.rmin) & (r <= self.rmax)
+            pos     = pos[ig] + self.center
+            npart   = len(pos)
+            masses  = full(npart, self.mdisk / float(npart)) # uniform masses
+
+            print(" We placed {:d} gas cells in a close-packed disk.".format(npart))
+            self.npart = npart
             
-        #first: power index radial profile
-        if (Rgap == 0) & (kappa != 0):
-    
+            if unif:
+                print(" Disk mass distributed radially uniformingly.")
+                self.pos   = pos
+                self.mass  = masses
+                return
+
+        if not thun:
+
             if kappa <= -2:   # impossible
                 print("kappa must be greater than -2. Exiting.")
                 exit()
-
-            print("Setting radial density profile with  RHO~r**{}...".format(kappa))
+                
+            print(" Setting radial density profile with RHO~r**{}...".format(kappa))
 
             if method == 1:
                 print(" Modifying particles positions...")
                 
                 # we use centered transpose of pos
-                pos  = transpose(self.pos - self.center)
+                pos  = transpose(pos - self.center)
                 
                 if self.rmin > 0: 
-                    print("WARNING: This density profile method may create an extra")
-                    print("          gap (or modify the existing one) at the center")
-                    print("          of the disk.")
-                    print("         Please make sure this is what you want.")            
+                    print(" WARNING: This density profile method may create an extra")
+                    print("           gap (or modify the existing one) at the center")
+                    print("           of the disk.")
+                    print("          Please make sure this is what you want.")            
 
                 # redistribute particles uniformingly along radius
                 pos *= norm(pos, axis=0)
@@ -137,8 +140,9 @@ class Disk:
                 # normalize radii according to radius
                 pos *= self.rmax / max(norm(pos, axis=0))
                 
-                
-                self.pos  = transpose(pos) + self.center
+
+                self.pos   = transpose(pos) + self.center
+                self.mass  = masses
 
 
             elif method == 2:
@@ -146,7 +150,7 @@ class Disk:
                 print(" Modifying particles masses...")
                 
                 # we use centered transpose of pos
-                pos  = transpose(self.pos - self.center)
+                pos  = transpose(pos - self.center)
 
                 # get radii and sort particles
                 radii   = norm(pos, axis=0)
@@ -155,13 +159,13 @@ class Disk:
                 radii   = radii[order]
 
                 # normalization cte
-                cte     = (kappa + 2) * log(radii[-1] - radii[0]) - log(sum(self.mass))
+                cte     = (kappa + 2) * log(radii[-1] - radii[0]) - log(self.mdisk)
 
                 # radial bins
                 eps     = 1e-6
                 nbins   = int((radii[-1] - radii[0]) / max(diff(unique(radii))))
-                
-                if logb:
+
+                if (self.rmin > 0) & logb:
                     bins = logspace(log10(radii[0] * (1 + eps)), 
                                     log10(radii[-1] * (1 + eps)),
                                     nbins)
@@ -184,7 +188,7 @@ class Disk:
                 
                 nuni = len(uni)
                 if not all(arange(nuni) ==  uni):
-                    print(' Fixing empty bins...')
+                    print('  Fixing empty bins...')
                     
                     np_b      = zeros(nbins)
                     np_b[uni] = NP_b
@@ -219,31 +223,28 @@ class Disk:
 
                 self.pos  = transpose(pos) + self.center
                 self.mass = masses
-                
+
                 
             elif method == 3:
                 # STILL TESTING!
                 
-                print(" Creating new particles positions, using {} bins...".format(nbins))
-                
-                rmin  = self.rmin
-                rmax  = self.rmax
-                
+                print(" Creating particles positions and masses, using {:d} bins...".format(nbins))
+                                
                 eps   = 1e-7
-                if logb:
-                    bins = logspace(log10(rmin * (1 + eps)), 
-                                    log10(rmax),
+                if (self.rmin > 0) & logb:
+                    bins = logspace(log10(self.rmin * (1 + eps)), 
+                                    log10(self.rmax),
                                     nbins)
                 else:
-                    bins = linspace(rmin * (1 + eps), 
-                                    rmax,
+                    bins = linspace(self.rmin * (1 + eps), 
+                                    self.rmax,
                                     nbins)
 
                 # cumulative mass until each bin line
                 CM_b  = bins**(kappa + 2) 
                 
                 # normalize total mass
-                CM_b *= (sum(self.mass) / CM_b[-1])
+                CM_b *= (self.mdisk / CM_b[-1])
                 
                 # mass until each bin line
                 M_b   = append(CM_b[0], diff(CM_b))
@@ -262,7 +263,7 @@ class Disk:
                 random.seed(seed)
                 
                 # re-define bins edges
-                bins  = append(rmin, bins)
+                bins  = append(self.rmin, bins)
                 
                 ## bin centers
                 bin_c = bins[:-1] + diff(bins) * 0.5
@@ -288,14 +289,19 @@ class Disk:
                 
             
             else: 
-                print("Method must be 1, 2 or 3. {} was given. Exiting.".format(method))
+                print("Method must be 1, 2 or 3. {:d} was given. Exiting.".format(method))
                 exit()
-                
-        
-        # now the "publication" profile
-        elif Rgap!=0:
+
+        # now the "publication" profile   
+        else:
             
-            print("Setting surface density from publication, with given parameters...")
+            if DR == 0:
+                print("Error. dR must be non zero. Exiting")
+                exit()
+
+            print(" Setting surface density from Thun et.al 2017,")
+            print("  with parameters:") 
+            print(" \tAlpha: {}\n \tRgap: {}\n \tdR: {}".format(alpha, Rgap/AU, DR/AU))
             
             # we defined the function we are going to integrate,
             # to get the mass ditribution from r0 to r1.
@@ -310,12 +316,16 @@ class Disk:
  
             # now we offer 2 of the possible methods described before
             
-            if method == 2:
+            if method in [1,2]:
+
+                if method == 1:
+                    print("WARNING. Method 1 for this distribution isn't implemented.")
+                    print("         Switchin to method 2.")
                 
                 print(" Modifying particles masses...")
                 
                 # we use centered transpose of pos
-                pos   = transpose(self.pos - self.center)
+                pos   = transpose(pos - self.center)
                 
                 
                 # get radii and sort particles
@@ -329,7 +339,7 @@ class Disk:
                 nbins = int((max(radii) - min(radii)) / 
                             max(diff(unique(radii))))
                 
-                if logb:
+                if (self.rmin > 0) & logb:
                     bins = logspace(log10(radii[0] * (1 - eps)), 
                                     log10(radii[-1] * (1 + eps)),
                                     nbins)
@@ -353,7 +363,7 @@ class Disk:
                 
                 nuni = len(uni)
                 if not all(arange(nuni) ==  uni):
-                    print(' Fixing empty bins...')
+                    print('  Fixing empty bins...')
                     
                     np_b      = zeros(nbins - 1)
                     np_b[uni] = NP_b
@@ -390,36 +400,28 @@ class Disk:
                 self.mass = masses
     
     
-                
-            elif method in [1,3]:
-                
-                if method == 1:
-                    print("WARNING. Method 1 for this distribution isn't implemented.")
-                    print("         Switchin to method 3.")
+            elif method == 3:
                 
                 # this is a bit more complicated, because we can't just
                 # shift the positions. we will create new positions.
                 # first we calculated mass distribution.
-                print(" Creating new particles positions and masses, using {} bins...".format(nbins))
-                
-                rmin = self.rmin
-                rmax = self.rmax
+                print(" Creating particles positions and masses, using {:d} bins...".format(nbins))
                 
                 eps  = 1e-8
-                if logb:
-                    bins = logspace(log10(rmin * (1 - eps)), 
-                                    log10(rmax * (1 + eps)),
+                if (self.rmin > 0) & logb:
+                    bins = logspace(log10(self.rmin * (1 - eps)), 
+                                    log10(self.rmax * (1 + eps)),
                                     nbins)
                 else:
-                    bins = linspace(rmin * (1 - eps), 
-                                    rmax * (1 + eps),
+                    bins = linspace(self.rmin * (1 - eps), 
+                                    self.rmax * (1 + eps),
                                     nbins)
                 # mass per bin
                 M_b = []
                 for i in range(nbins - 1): M_b.append(simpson(integ, bins[i], bins[i+1]))
                 
                 # normalize, according to Sigma(Rgap)
-                M_b       = array(M_b) * 2 * pi * sigma * AU**alpha
+                M_b    = array(M_b) * 2 * pi * sigma * AU**alpha
                 
                 # particles mass aproximation
                 pmass  = sum(M_b) / self.npart
@@ -459,12 +461,12 @@ class Disk:
                 
                                 
             else: 
-                print("Method must be 1, 2 or 3. {} was given. Exiting.".format(method))
+                print("Method must be 1, 2 or 3. {:d} was given. Exiting.".format(method))
                 exit()
                 
                 
                 
-    def add_velocity(self, Mextra=0, period=False, model=1):
+    def add_velocity(self, Mextra=0, period=0, model=1):
         """ Function for setting the velocities of a disk of particles,
             rotating contraclockwise. Pure circular motion assumed.
 
@@ -479,15 +481,16 @@ class Disk:
                          3: velocities from given period.
         """
     
-        if model not in [0, 1, 2, 3]: 
-            print("Model must be 0, 1, 2 or 3. Exiting.")
-            exit()
+        if self.npart == 0:
+            self.vel = transpose(array([[],[]]))
+            return
         
-        print("Adding velocities...")
+        print(" Adding velocities...")
         
         if model==0: vel = zeros((self.npart, 2))
         
-        elif model in [1,2]: 
+        elif model in [1,2]:
+            print("  Setting keplerian velocities...")
             pos        = self.pos - self.center
             radii      = norm(pos, axis=1)
             self.v_kep = sqrt(Mextra * G / radii)
@@ -497,9 +500,10 @@ class Disk:
             
 
         elif model==3:
-            if isinstance(period,bool) | (period==0):
-                print("Incorrect period for setting disk velocities.")
-                print(" Disk velocities are set to zero.")
+            print("  Setting velocities from binary period...")
+            if period==0:
+                print("  Incorrect period for setting disk velocities.")
+                print("  Disk velocities are set to zero.")
                 vel = zeros((self.npart, 2))
                 
             else:
@@ -508,7 +512,8 @@ class Disk:
                 vel   = v_ang * matmul(pos, array([[0, 1], [-1, 0]]))
                 
         else:
-            print("Model must be 0, 1, 2 or 3. Exiting.")
+            print("Model must be 0, 1, 2 or 3.")
+            print(" {:d} was given. Exiting.".format(model))
             exit()
             
         
@@ -516,7 +521,7 @@ class Disk:
                 
     
     
-    def add_energy(self, T=0, beta=0, Mkep=0, mu=1, gamma=5/3., Tmin=5., AU=1):
+    def add_energy(self, T=0, beta=0, Mkep=0, mu=1, gamma=5/3., Tmin=0., AU=1):
         """ Function for setting the temperature of a disk of particles. This
              function is still being tested and corrected.
             # InternalEnergy = Temperature * kBoltz / (mu * mP * (gamma - 1))
@@ -537,26 +542,25 @@ class Disk:
                 AU    : astronomical unit in input distance units.
         """
         
-        print('Adding temperature...')
+        if self.npart == 0:
+            self.u = array([])
+            return
+
+        print(' Adding temperature...')
 
         radii  = norm(self.pos - self.center, axis=1)
-       
-        if T == 0:
-            print("WARNING. Minimun temperature is zero.")
-            print("         Remember to re-set it when integrating.")
    
         if T < 0:
-            print(' Setting Temperature according to c_s(r)**2, with c_s(r) = h * v_kep(r),')
-            try:    v_kep = self.v_kep
-            except: v_kep = sqrt(Mkep * G / radii)
-            c_s   = self.h * v_kep
+            print('  Setting Temperature according to c_s(r)**2, with c_s(r) = h * v_kep(r),')
+            if not hasattr(self, 'v_kep'): self.v_kep = sqrt(Mkep * G / radii)
+            c_s   = self.h * self.v_kep
             if gamma <= 0: gamma_cs = 1
             else: gamma_cs = gamma
             if mu <= 0:
                 if gamma == 1.4: mu_cs = 2.01  # Adiabatic molecular
                 else: mu_cs = 1.005            # Adiabatic/Isothermal atomic
 
-            print('  using gamma = {:.3f}, and mu = {:.3f}.'.format(gamma_cs, mu_cs))  
+            print('   using gamma = {:.3f}, and mu = {:.3f}...'.format(gamma_cs, mu_cs))  
             
             T = c_s**2 * mu_cs * mP / (gamma_cs * KB)
 
@@ -569,20 +573,22 @@ class Disk:
         # This following settings are still being tested if correct
     
         if mu <= 0:
-            print(' Calculating mu used in code.')
+            print('  Calculating mu used in code...')
             mu = full(self.npart, 0.5) # Ionized
             mu[T < 1.e4] = 1.005       # Atomic
             mu[T < 2.e3] = 2.01        # Molecular (Optional)
 
         if gamma <= 0:
-            print(' Calculating gamma used in code.')
+            print('  Calculating gamma used in code...')
             gamma = full(self.npart, 5/3.) # Adiabatic monoatomic
             gamma[T < 2.e3] = 1.4	   # Adiabatic diatomic
 
         factor = KB / (mP * mu * (gamma - 1))
         
-        print(' Maximum temperature: {:.2f}'.format(max(T)))
-        print(' Minimum temperature: {:.2f}'.format(min(T)))
+        if max(T) == min(T): print("  Temperature: {} [K]".format(T[0]))
+        else:
+            print('  Maximum temperature: {:.2f} [K]'.format(max(T)))
+            print('  Minimum temperature: {:.2f} [K]'.format(min(T)))
          
-        self.u = T * factor
 
+        self.u = T * factor

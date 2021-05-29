@@ -15,18 +15,18 @@ def save_particles(ids, pos, vel, mass, u, types, rad, outfile, format, units):
         
     # conversion for different Units
     if units:
-        print("[Output Units AU / Msun / km/s]")
+        print(" Output Units: AU | Msun | km/s")
         pos  /= AU
         mass /= msol
         vel  /= 1.e5
         u    /= 1.e10
         rad  /= AU
     else:
-        print("[Output Units CGS]")
+        print(" Output Units: CGS")
 
     if path.isfile(outfile):
         print("WARNING: File {} already exist.".format(outfile))
-        print("Do yo want to overwrite it? Y/[N]")
+        print(" Do yo want to overwrite it? Y/[N]")
         q = input()
         if q.lower() in ['y', 'yes', 's', 'si']:
             remove(outfile)
@@ -45,10 +45,10 @@ def save_particles(ids, pos, vel, mass, u, types, rad, outfile, format, units):
             print("Unexpected error: {}".format(exc_info()[0]))
             raise
 
-        id_space = len("{}".format(ngas))
+        id_space = len("{}".format(ngas + nsys))
 
         # Preparing every line to print to the file
-        for i in range(ngas+nsys):
+        for i in range(ngas + nsys):
             # Formatting particle attributes
             ie = '% d'    % ids[i]
             rx = '% 3.8e' % pos[i][0]
@@ -82,8 +82,8 @@ def save_particles(ids, pos, vel, mass, u, types, rad, outfile, format, units):
     elif format == 1:
         with File(outfile, "w") as f:
             f.create_group("Header")
-            if len(unique(mass[:ngas])) > 1: mgas = 0.
-            else: mgas = mass[0]
+            if bool(ngas) & len(unique(mass[:ngas])) == 1: mgas = mass[0]
+            else: mgas = 0.
             if bool(nsys) & (len(unique(mass[ngas:])) == 1): mbh = mass[-1]
             else: mbh = 0.
             f["Header"].attrs["NumPart_ThisFile"]     = array([ngas,0,0,0,0,nsys], dtype=uint32)
@@ -94,12 +94,13 @@ def save_particles(ids, pos, vel, mass, u, types, rad, outfile, format, units):
             f["Header"].attrs["Flag_Sfr"]             = int32(0)
             f["Header"].attrs["Flag_Feedback"]        = int32(0)
             f["Header"].attrs["Flag_DoublePrecision"] = int32(0)
-            f.create_group("PartType0")
-            f["PartType0"].create_dataset("Masses",         data=mass[:ngas].astype(float32))
-            f["PartType0"].create_dataset("Coordinates",    data=pos[:ngas].astype(float32))
-            f["PartType0"].create_dataset("Velocities",     data=vel[:ngas].astype(float32))
-            f["PartType0"].create_dataset("ParticleIDs",    data=ids[:ngas].astype(int32))
-            f["PartType0"].create_dataset("InternalEnergy", data=u[:ngas].astype(float32))
+            if bool(ngas):
+                f.create_group("PartType0")
+                f["PartType0"].create_dataset("Masses",         data=mass[:ngas].astype(float32))
+                f["PartType0"].create_dataset("Coordinates",    data=pos[:ngas].astype(float32))
+                f["PartType0"].create_dataset("Velocities",     data=vel[:ngas].astype(float32))
+                f["PartType0"].create_dataset("ParticleIDs",    data=ids[:ngas].astype(int32))
+                f["PartType0"].create_dataset("InternalEnergy", data=u[:ngas].astype(float32))
             if bool(nsys):
                 f.create_group("PartType5")
                 f["PartType5"].create_dataset("Masses",      data=mass[ngas:].astype(float32))
